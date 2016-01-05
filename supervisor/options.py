@@ -456,9 +456,9 @@ class ServerOptions(Options):
         self.exit(0)
 
     def getLogger(self, filename, level, fmt, rotating=False, maxbytes=0,
-                  backups=0, stdout=False):
+                  backups=0, stdout=False, ident=None):
         return loggers.getLogger(filename, level, fmt, rotating, maxbytes,
-                                 backups, stdout)
+                                 backups, stdout, ident=ident)
 
     def realize(self, *arg, **kw):
         Options.realize(self, *arg, **kw)

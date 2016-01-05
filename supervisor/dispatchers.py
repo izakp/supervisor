@@ -88,15 +88,14 @@ class POutputDispatcher(PDispatcher):
             maxbytes = getattr(process.config, '%s_logfile_maxbytes' % channel)
             backups = getattr(process.config, '%s_logfile_backups' % channel)
             fmt = '%(message)s'
-            if logfile == 'syslog':
-                fmt = ' '.join((process.config.name, fmt))
             self.mainlog = process.config.options.getLogger(
                 logfile,
                 loggers.LevelsByName.INFO,
                 fmt=fmt,
                 rotating=not not maxbytes, # optimization
                 maxbytes=maxbytes,
-                backups=backups)
+                backups=backups,
+                ident=process.config.name)
 
         if capture_maxbytes:
             self.capturelog = self.process.config.options.getLogger(
@@ -105,6 +104,7 @@ class POutputDispatcher(PDispatcher):
                 '%(message)s',
                 rotating=False,
                 maxbytes=capture_maxbytes,
+                ident=process.config.name
                 )
 
         self.childlog = self.mainlog
@@ -271,7 +271,8 @@ class PEventListenerDispatcher(PDispatcher):
                 '%(message)s',
                 rotating=not not maxbytes, # optimization
                 maxbytes=maxbytes,
-                backups=backups)
+                backups=backups,
+                ident=process.config.name)
 
     def removelogs(self):
         if self.childlog is not None:

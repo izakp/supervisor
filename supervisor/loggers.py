@@ -299,7 +299,12 @@ class Logger:
         raise NotImplementedError
 
 class SyslogHandler(Handler):
-    def __init__(self):
+    def __init__(self, ident=None):
+        if ident is None:
+            self.ident = "supervisord"
+        else:
+            self.ident = "supervisord__%s" % ident
+
         assert 'syslog' in globals(), "Syslog module not present"
 
     def close(self):
@@ -307,6 +312,10 @@ class SyslogHandler(Handler):
 
     def reopen(self):
         pass
+
+    def _syslog(self, msg):
+        syslog.openlog(ident=self.ident)
+        syslog.syslog(msg)
 
     def emit(self, record):
         try:
@@ -316,14 +325,14 @@ class SyslogHandler(Handler):
                 params['message'] = line
                 msg = self.fmt % params
                 try:
-                    syslog.syslog(msg)
+                    self._syslog(msg)
                 except UnicodeError:
-                    syslog.syslog(msg.encode("UTF-8"))
+                    self._syslog(msg.encode("UTF-8"))
         except:
             self.handleError()
 
 def getLogger(filename, level, fmt, rotating=False, maxbytes=0, backups=0,
-              stdout=False):
+              stdout=False, ident=None):
 
     handlers = []
 
@@ -337,7 +346,7 @@ def getLogger(filename, level, fmt, rotating=False, maxbytes=0, backups=0,
         logger.getvalue = io.getvalue
 
     elif filename == 'syslog':
-        handlers.append(SyslogHandler())
+        handlers.append(SyslogHandler(ident=ident))
 
     else:
         if rotating is False:
