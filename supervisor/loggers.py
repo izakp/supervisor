@@ -19,6 +19,8 @@ except ImportError:
     # only required when 'syslog' is specified as the log filename
     pass
 
+from supervisor.logstash_formatter import LogstashFormatter
+
 class LevelsByName:
     CRIT = 50   # messages that probably require immediate user attention
     ERRO = 40   # messages that indicate a potentially ignorable error condition
@@ -76,7 +78,10 @@ class Handler:
 
     def emit(self, record):
         try:
-            msg = self.fmt % record.asdict()
+            if isinstance(self.fmt, LogstashFormatter):
+                msg = self.fmt.format(record.asdict())
+            else:
+                msg = self.fmt % record.asdict()
             try:
                 self.stream.write(msg)
             except UnicodeError:
@@ -323,7 +328,10 @@ class SyslogHandler(Handler):
             message = params['message']
             for line in message.rstrip('\n').split('\n'):
                 params['message'] = line
-                msg = self.fmt % params
+                if isinstance(self.fmt, LogstashFormatter):
+                    msg = self.fmt.format(params)
+                else:
+                    msg = self.fmt % params
                 try:
                     self._syslog(msg)
                 except UnicodeError:

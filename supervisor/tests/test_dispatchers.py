@@ -1,6 +1,7 @@
 import unittest
 import os
 import sys
+import json
 
 from supervisor.tests.base import DummyOptions
 from supervisor.tests.base import DummyProcess
@@ -296,7 +297,7 @@ class POutputDispatcherTests(unittest.TestCase):
             self.assertEqual(event.__class__, ProcessCommunicationStdoutEvent)
             self.assertEqual(event.process, process)
             self.assertEqual(event.channel, 'stdout')
-            self.assertEqual(event.data, 'hello')
+            self.assertEqual(json.loads(event.data)["@message"], 'hello')
 
         finally:
             try:
@@ -340,7 +341,7 @@ class POutputDispatcherTests(unittest.TestCase):
             dispatcher.output_buffer = first
             dispatcher.record_output()
             [ x.flush() for x in dispatcher.childlog.handlers]
-            self.assertEqual(open(logfile, 'r').read(), letters)
+            self.assertEqual(json.loads(open(logfile, 'r').read())["@message"], letters)
             self.assertEqual(dispatcher.output_buffer, first[len(letters):])
             self.assertEqual(len(events), 0)
 
@@ -348,21 +349,25 @@ class POutputDispatcherTests(unittest.TestCase):
             dispatcher.record_output()
             self.assertEqual(len(events), 0)
             [ x.flush() for x in dispatcher.childlog.handlers]
-            self.assertEqual(open(logfile, 'r').read(), letters)
+            self.assertEqual(json.loads(open(logfile, 'r').read())["@message"], letters)
             self.assertEqual(dispatcher.output_buffer, first[len(letters):])
             self.assertEqual(len(events), 0)
 
             dispatcher.output_buffer += third
             dispatcher.record_output()
             [ x.flush() for x in dispatcher.childlog.handlers]
-            self.assertEqual(open(logfile, 'r').read(), letters *2)
+            json_fragments = open(logfile, 'r').read().split("}{")
+            self.assertEqual(len(json_fragments), 2)
+            msg0 = json.loads(json_fragments[0] + "}")
+            msg1 = json.loads("{" + json_fragments[1])
+            self.assertEqual(msg0["@message"] + msg1["@message"], letters *2)
             self.assertEqual(len(events), 1)
             event = events[0]
             from supervisor.events import ProcessCommunicationStdoutEvent
             self.assertEqual(event.__class__, ProcessCommunicationStdoutEvent)
             self.assertEqual(event.process, process)
             self.assertEqual(event.channel, 'stdout')
-            self.assertEqual(event.data, digits)
+            self.assertEqual(json.loads(event.data)["@message"], digits)
 
         finally:
             try:

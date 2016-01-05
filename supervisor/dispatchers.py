@@ -9,6 +9,8 @@ from supervisor.states import EventListenerStates
 from supervisor.states import getEventListenerStateDescription
 from supervisor import loggers
 
+from supervisor.logstash_formatter import LogstashFormatter
+
 def find_prefix_at_end(haystack, needle):
     l = len(needle) - 1
     while l and not haystack.endswith(needle[:l]):
@@ -84,14 +86,15 @@ class POutputDispatcher(PDispatcher):
         capture_maxbytes = getattr(process.config,
                                    '%s_capture_maxbytes' % channel)
 
+        logstash_formatter = LogstashFormatter()
+
         if logfile:
             maxbytes = getattr(process.config, '%s_logfile_maxbytes' % channel)
             backups = getattr(process.config, '%s_logfile_backups' % channel)
-            fmt = '%(message)s'
             self.mainlog = process.config.options.getLogger(
                 logfile,
                 loggers.LevelsByName.INFO,
-                fmt=fmt,
+                fmt=logstash_formatter,
                 rotating=not not maxbytes, # optimization
                 maxbytes=maxbytes,
                 backups=backups,
@@ -101,7 +104,7 @@ class POutputDispatcher(PDispatcher):
             self.capturelog = self.process.config.options.getLogger(
                 None, # BoundIO
                 loggers.LevelsByName.INFO,
-                '%(message)s',
+                logstash_formatter,
                 rotating=False,
                 maxbytes=capture_maxbytes,
                 ident=process.config.name
@@ -261,6 +264,7 @@ class PEventListenerDispatcher(PDispatcher):
         self.fd = fd
 
         logfile = getattr(process.config, '%s_logfile' % channel)
+        logstash_formatter = LogstashFormatter()
 
         if logfile:
             maxbytes = getattr(process.config, '%s_logfile_maxbytes' % channel)
@@ -268,7 +272,7 @@ class PEventListenerDispatcher(PDispatcher):
             self.childlog = process.config.options.getLogger(
                 logfile,
                 loggers.LevelsByName.INFO,
-                '%(message)s',
+                logstash_formatter,
                 rotating=not not maxbytes, # optimization
                 maxbytes=maxbytes,
                 backups=backups,
